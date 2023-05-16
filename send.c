@@ -169,39 +169,42 @@ void send_mail(const char *receiver, const char *subject, const char *msg,
 
   send(s_fd, boundary, strlen(boundary), 0);
 
-  const char *ENCODE = str_connect("Content-Transfer-Encoding: base64", end);
-  send(s_fd, ENCODE, strlen(ENCODE), 0);
-
-  CONTENT_TYPE = str_connect(
-      str_connect(str_connect("Content-Type: application/octet-stream; name=",
-                              att_path),
-                  end),
-      end);
-  send(s_fd, CONTENT_TYPE, strlen(CONTENT_TYPE), 0);
-
   // send attchment
-  char ATTACHMENT[1024];
-  FILE *f_attachment = fopen(att_path, "rb");
-  if (f_attachment == NULL) {
-    fprintf(stderr, "File %s not found\n", att_path);
-    exit(EXIT_FAILURE);
-  } else {
-    FILE *f_encode = fopen("file_base64.txt", "wb+");
-    encode_file(f_attachment, f_encode);
-    fclose(f_attachment);
-    fseek(f_encode, 0L, SEEK_END);
-    int len = ftell(f_encode);
-    fseek(f_encode, 0L, SEEK_SET);
-    char *file_content = (char *)malloc(len + 1);
-    fread(file_content, sizeof(char), len, f_encode);
-    file_content[len] = '\0';
-    fclose(f_encode);
-    strcpy(ATTACHMENT, file_content);
-  }
-  const char *ATTACHMENT_BODY = str_connect(str_connect(ATTACHMENT, end), end);
-  send(s_fd, ATTACHMENT_BODY, strlen(ATTACHMENT_BODY), 0);
+  if (att_path != NULL) {
+    const char *ENCODE = str_connect("Content-Transfer-Encoding: base64", end);
+    send(s_fd, ENCODE, strlen(ENCODE), 0);
 
-  send(s_fd, boundary, strlen(boundary), 0);
+    CONTENT_TYPE = str_connect(
+        str_connect(str_connect("Content-Type: application/octet-stream; name=",
+                                att_path),
+                    end),
+        end);
+    send(s_fd, CONTENT_TYPE, strlen(CONTENT_TYPE), 0);
+
+    char ATTACHMENT[1024];
+    FILE *f_attachment = fopen(att_path, "rb");
+    if (f_attachment == NULL) {
+      fprintf(stderr, "File %s not found\n", att_path);
+      exit(EXIT_FAILURE);
+    } else {
+      FILE *f_encode = fopen("file_base64.txt", "wb+");
+      encode_file(f_attachment, f_encode);
+      fclose(f_attachment);
+      fseek(f_encode, 0L, SEEK_END);
+      int len = ftell(f_encode);
+      fseek(f_encode, 0L, SEEK_SET);
+      char *file_content = (char *)malloc(len + 1);
+      fread(file_content, sizeof(char), len, f_encode);
+      file_content[len] = '\0';
+      fclose(f_encode);
+      strcpy(ATTACHMENT, file_content);
+    }
+    const char *ATTACHMENT_BODY =
+        str_connect(str_connect(ATTACHMENT, end), end);
+    send(s_fd, ATTACHMENT_BODY, strlen(ATTACHMENT_BODY), 0);
+
+    send(s_fd, boundary, strlen(boundary), 0);
+  }
 
   // Message ends with a single period
   send(s_fd, end_msg, strlen(end_msg), 0);
